@@ -7,7 +7,9 @@
   "compilerOptions": {
     "paths": {
       "@themis": ["./src/themis"],
-      "@themis/*": ["./src/themis/*"]
+      "@themis/*": ["./src/themis/*"],
+      "@public": ["./public"],
+      "@public/*": ["./public/*"],
     }
   }
 }

@@ -2,7 +2,8 @@
 ## Choice of vite
 - Lean + Fast
 - https://react.dev/learn/build-a-react-app-from-scratch#vite
-
+## Choice of *.mp4 in the repo to avoid scope creep
+- Ideally media files should be hosted on a CDN in a prod app.
 
 # React + TypeScript + Vite
 
