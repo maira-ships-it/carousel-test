@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../Icon'
 import { RoundButton } from '../RoundButton'
+import { VideoPlayer } from '../VideoPlayer'
 import './Carousel.css'
 
 export type CarouselItem = {
@@ -82,24 +83,12 @@ export function Carousel({ title, items }: CarouselProps) {
               >
                 <article className="carousel__panel">
                   <div className="carousel__media-frame">
-                    <video
-                      className="carousel__video"
-                      playsInline
-                      muted
-                      loop
-                      preload="metadata"
-                      controls={isActive}
-                      tabIndex={isActive ? 0 : -1}
-                    >
-                      {item.mobileSrc ? (
-                        <source
-                          src={item.mobileSrc}
-                          media="(max-width: 767px)"
-                          type="video/mp4"
-                        />
-                      ) : null}
-                      <source src={item.desktopSrc} type="video/mp4" />
-                    </video>
+                    <VideoPlayer
+                      src={item.desktopSrc}
+                      mobileSrc={item.mobileSrc}
+                      isPlayerActive={isActive}
+                      label={item.title}
+                    />
                   </div>
 
                   <p className="carousel__caption">{item.title}</p>

@@ -74,25 +74,7 @@
   background: rgba(255, 255, 255, 0.58);
 }
 
-.carousel__video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
-  background:
-    linear-gradient(45deg, rgba(218, 217, 215, 0.95) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(218, 217, 215, 0.95) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(218, 217, 215, 0.95) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(218, 217, 215, 0.95) 75%);
-  background-position:
-    0 0,
-    0 20px,
-    20px -20px,
-    -20px 0;
-  background-size: 40px 40px;
-}
-
-.carousel__card:not(.is-active) .carousel__video {
+.carousel__card:not(.is-active) .video-player {
   pointer-events: none;
 }
 
