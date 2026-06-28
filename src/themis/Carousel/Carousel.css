@@ -1,0 +1,116 @@
+.carousel {
+  display: flex;
+  flex-direction: column;
+  row-gap: 20px;
+}
+
+.carousel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-right: 80px
+}
+
+.carousel__title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 36px;
+  letter-spacing: 0%;
+  color: var(--text-gray-primary);
+  font-weight: 600;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+}
+
+.carousel__controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.carousel__viewport {
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.carousel__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel__track {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+}
+
+.carousel__card {
+  flex: 0 0 300px;
+  width: 300px;
+  opacity: 0.34;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.carousel__card.is-active {
+  opacity: 1;
+}
+
+.carousel__panel {
+  display: grid;
+  gap: 14px;
+}
+
+.carousel__media-frame {
+  width: 300px;
+  height: 500px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.carousel__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  background:
+    linear-gradient(45deg, rgba(218, 217, 215, 0.95) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(218, 217, 215, 0.95) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(218, 217, 215, 0.95) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(218, 217, 215, 0.95) 75%);
+  background-position:
+    0 0,
+    0 20px,
+    20px -20px,
+    -20px 0;
+  background-size: 40px 40px;
+}
+
+.carousel__card:not(.is-active) .carousel__video {
+  pointer-events: none;
+}
+
+.carousel__caption {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-gray-primary);
+}
+
+@media (max-width: 640px) {
+  .carousel__controls {
+    display: none;
+  }
+
+  .carousel__title {
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 26px;
+  }
+}
