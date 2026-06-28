@@ -1,0 +1,32 @@
+.video-player__controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.video-player__control {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.video-player__control:hover {
+  transform: scale(1.08);
+}
+
+.video-player__control:active {
+  transform: scale(0.96);
+}
+
+.video-player__icon {
+  width: 25.6px;
+  height: 25.6px;
+}
