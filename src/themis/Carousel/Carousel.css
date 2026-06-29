@@ -32,9 +32,16 @@
 }
 
 .carousel__viewport {
-  overflow-x: auto;
+  /* Native free-scroll is disabled; navigation is driven by buttons and by
+     pointer swipe/drag gestures that advance exactly one card. The container
+     stays programmatically scrollable so scrollIntoView can position the active
+     card. touch-action: pan-y keeps vertical page scrolling while we own
+     horizontal gestures (and avoids triggering browser back-swipe). */
+  overflow-x: hidden;
   scrollbar-width: none;
-  scroll-behavior: smooth;
+  touch-action: pan-y;
+  /* Avoid selecting text/images while click-dragging on desktop. */
+  user-select: none;
 }
 
 .carousel__viewport::-webkit-scrollbar {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Icon } from '../Icon'
 import { RoundButton } from '../RoundButton'
 import { VideoPlayer } from '../VideoPlayer'
@@ -16,14 +16,27 @@ type CarouselProps = {
   items: CarouselItem[]
 }
 
+// Minimum horizontal travel before a swipe/drag counts as navigation.
+const SWIPE_THRESHOLD = 40
+
+const LEFT = -1
+const RIGHT = 1
+type NavigationDirection = -1 | 1
+
 export function Carousel({ title, items }: CarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const cardRefs = useRef<Array<HTMLLIElement | null>>([])
 
-  useEffect(() => {
-    const activeCard = cardRefs.current[activeIndex]
+  const isPointerDownRef = useRef(false)
+  // Pointer x captured at pointerdown; the gesture's origin, used to measure
+  // how far the pointer has travelled horizontally.
+  const xAtPointerDownRef = useRef(0)
+  const isCurrentlyNavigatingRef = useRef(false)
 
-    activeCard?.scrollIntoView({
+  // activeIndex is the single source of truth; scroll the active card into view
+  // whenever it changes (works even though the viewport disables user scroll).
+  useEffect(() => {
+    cardRefs.current[activeIndex]?.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'start',
@@ -34,16 +47,41 @@ export function Carousel({ title, items }: CarouselProps) {
     return null
   }
 
-  const goToPrevious = () => {
-    setActiveIndex((currentIndex) =>
-      currentIndex === 0 ? items.length - 1 : currentIndex - 1,
+  // True when a drag is too small to count as an intentional swipe.
+  const isUnintentionalTouch = (xDifference: number) =>
+    Math.abs(xDifference) < SWIPE_THRESHOLD
+
+  // Advance exactly one card.
+  const navigate = (direction: NavigationDirection) => {
+    setActiveIndex(
+      (current) => (current + direction + items.length) % items.length,
     )
   }
 
-  const goToNext = () => {
-    setActiveIndex((currentIndex) =>
-      currentIndex === items.length - 1 ? 0 : currentIndex + 1,
-    )
+  // Pointer events cover mouse, touch and pen with one code path, so dragging
+  // works on desktop (click-drag) as well as touch devices.
+  const startCurrentNavigation = (event: PointerEvent<HTMLDivElement>) => {
+    isPointerDownRef.current = true
+    isCurrentlyNavigatingRef.current = false
+    xAtPointerDownRef.current = event.clientX
+  }
+
+  // Advance once when the drag first passes the horizontal threshold; the rest
+  // of the gesture is ignored until the pointer is released.
+  const handleNavigation = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isPointerDownRef.current || isCurrentlyNavigatingRef.current) return
+
+    const xDifference = event.clientX - xAtPointerDownRef.current
+    if (isUnintentionalTouch(xDifference)) return
+
+    isCurrentlyNavigatingRef.current = true
+
+    navigate(xDifference < 0 ? RIGHT : LEFT)
+  }
+
+  const endCurrentNavigation = () => {
+    isPointerDownRef.current = false
+    isCurrentlyNavigatingRef.current = false
   }
 
   return (
@@ -54,20 +92,27 @@ export function Carousel({ title, items }: CarouselProps) {
         <div className="carousel__controls" aria-label="Carousel navigation">
           <RoundButton
             ariaLabel="Show previous video"
-            onClick={goToPrevious}
+            onClick={() => navigate(LEFT)}
           >
             <Icon name="chevronLeftCircle" className="round-button__icon" />
           </RoundButton>
           <RoundButton
             ariaLabel="Show next video"
-            onClick={goToNext}
+            onClick={() => navigate(RIGHT)}
           >
             <Icon name="chevronRightCircle" className="round-button__icon" />
           </RoundButton>
         </div>
       </div>
 
-      <div className="carousel__viewport">
+      <div
+        className="carousel__viewport"
+        onPointerDown={startCurrentNavigation}
+        onPointerMove={handleNavigation}
+        onPointerUp={endCurrentNavigation}
+        onPointerCancel={endCurrentNavigation}
+        onPointerLeave={endCurrentNavigation}
+      >
         <ol className="carousel__track">
           {items.map((item, index) => {
             const isActive = index === activeIndex
