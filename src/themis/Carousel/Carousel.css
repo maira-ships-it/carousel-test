@@ -33,19 +33,15 @@
 
 .carousel__viewport {
   /* Native free-scroll is disabled; navigation is driven by buttons and by
-     pointer swipe/drag gestures that advance exactly one card. The container
-     stays programmatically scrollable so scrollIntoView can position the active
-     card. touch-action: pan-y keeps vertical page scrolling while we own
-     horizontal gestures (and avoids triggering browser back-swipe). */
-  overflow-x: hidden;
-  scrollbar-width: none;
+     pointer swipe/drag gestures that advance exactly one card. The active card
+     is positioned by translating the track (see .carousel__track), so the
+     viewport just clips the overflow. touch-action: pan-y keeps vertical page
+     scrolling while we own horizontal gestures (and avoids triggering browser
+     back-swipe). */
+  overflow: hidden;
   touch-action: pan-y;
   /* Avoid selecting text/images while click-dragging on desktop. */
   user-select: none;
-}
-
-.carousel__viewport::-webkit-scrollbar {
-  display: none;
 }
 
 .carousel__track {
@@ -54,6 +50,10 @@
   gap: 20px;
   margin: 0;
   padding: 0;
+  /* The translateX offset is computed in Carousel.tsx and applied inline; the
+     transition animates the move whenever the active index changes. */
+  transition: transform 320ms ease;
+  will-change: transform;
 }
 
 .carousel__card {

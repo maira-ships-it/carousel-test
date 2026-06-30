@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useRef, useState, type PointerEvent } from 'react'
 import { Icon } from '../Icon'
 import { RoundButton } from '../RoundButton'
 import { VideoPlayer } from '../VideoPlayer'
@@ -19,29 +19,25 @@ type CarouselProps = {
 // Minimum horizontal travel before a swipe/drag counts as navigation.
 const SWIPE_THRESHOLD = 40
 
+// Card width (px) plus the inter-card gap (px); the distance the track shifts
+// per active index. Keep in sync with .carousel__card width / .carousel__track
+// gap in Carousel.css.
+const CARD_WIDTH = 300
+const CARD_GAP = 20
+const CARD_STEP = CARD_WIDTH + CARD_GAP
+
 const LEFT = -1
 const RIGHT = 1
 type NavigationDirection = -1 | 1
 
 export function Carousel({ title, items }: CarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const cardRefs = useRef<Array<HTMLLIElement | null>>([])
 
   const isPointerDownRef = useRef(false)
   // Pointer x captured at pointerdown; the gesture's origin, used to measure
   // how far the pointer has travelled horizontally.
   const xAtPointerDownRef = useRef(0)
   const isCurrentlyNavigatingRef = useRef(false)
-
-  // activeIndex is the single source of truth; scroll the active card into view
-  // whenever it changes (works even though the viewport disables user scroll).
-  useEffect(() => {
-    cardRefs.current[activeIndex]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'start',
-    })
-  }, [activeIndex])
 
   if (items.length === 0) {
     return null
@@ -113,16 +109,21 @@ export function Carousel({ title, items }: CarouselProps) {
         onPointerCancel={endCurrentNavigation}
         onPointerLeave={endCurrentNavigation}
       >
-        <ol className="carousel__track">
+        <ol
+          className="carousel__track"
+          // activeIndex is the single source of truth; the track is shifted left
+          // by one card-step per index via a CSS transform (transition handles
+          // the animation), so no programmatic scrolling is needed.
+          style={{
+            transform: `translateX(${-activeIndex * CARD_STEP}px)`,
+          }}
+        >
           {items.map((item, index) => {
             const isActive = index === activeIndex
 
             return (
               <li
                 key={item.id}
-                ref={(element) => {
-                  cardRefs.current[index] = element
-                }}
                 className={`carousel__card${isActive ? ' is-active' : ''}`}
                 aria-current={isActive}
               >
