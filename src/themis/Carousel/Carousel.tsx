@@ -9,6 +9,7 @@ export type CarouselItem = {
   title: string
   desktopSrc: string
   mobileSrc?: string
+  stableKey?: string
 }
 
 type CarouselProps = {
@@ -30,8 +31,29 @@ const LEFT = -1
 const RIGHT = 1
 type NavigationDirection = -1 | 1
 
-export function Carousel({ title, items }: CarouselProps) {
-  const [activeIndex, setActiveIndex] = useState(0)
+
+const buildWithStableKey = (items: CarouselItem[]): CarouselItem[] =>
+  [...items, ...items, ...items].map((item, index) => ({
+    ...item,
+    stableKey: item.stableKey || String(index)
+  }))
+
+// Rotate the array by steps: positive moves items off the front and onto the
+// back (left rotation), negative does the reverse. Keys move with their items.
+const rotate = (items: CarouselItem[], steps: number): CarouselItem[] => {
+  const length = items.length
+  const offset = ((steps % length) + length) % length
+  return [...items.slice(offset), ...items.slice(0, offset)]
+}
+
+export function Carousel(props: CarouselProps) {
+  const N = props.items.length
+
+  const [items, setItems] = useState<CarouselItem[]>(() => buildWithStableKey(props.items))
+  // Starts at N, and adjusts at transition end to stay at N so there are N cards behind and ahead.
+  const [activeIndex, setActiveIndex] = useState(N)
+
+  const [isAnimating, setIsAnimating] = useState(false)
 
   const isPointerDownRef = useRef(false)
   // Pointer x captured at pointerdown; the gesture's origin, used to measure
@@ -39,7 +61,7 @@ export function Carousel({ title, items }: CarouselProps) {
   const xAtPointerDownRef = useRef(0)
   const isCurrentlyNavigatingRef = useRef(false)
 
-  if (items.length === 0) {
+  if (N === 0) {
     return null
   }
 
@@ -47,11 +69,25 @@ export function Carousel({ title, items }: CarouselProps) {
   const isUnintentionalTouch = (xDifference: number) =>
     Math.abs(xDifference) < SWIPE_THRESHOLD
 
-  // Advance exactly one card.
+  // Slide one card in the given direction. The activeIndex is allowed to drift past the
+  // N here, the transition-end handler rotates the array and auto corrects
+  // the active index back to N.
   const navigate = (direction: NavigationDirection) => {
-    setActiveIndex(
-      (current) => (current + direction + items.length) % items.length,
-    )
+    setIsAnimating(true)
+    setActiveIndex((current) => current + direction)
+  }
+
+  // After the slide finishes, rotate an item from the start of the array to the end
+  // or from end to the start by the rotate method. This is to never run out of videos.
+  // Bring active index back to N to not go out of index.
+  const handleTransitionEnd = () => {
+    // In practice we would always move 1 step as we disable buttons when animating.
+    const steps = activeIndex - N
+    if (steps === 0) return
+
+    setItems((current) => rotate(current, steps))
+    setActiveIndex(N)
+    setIsAnimating(false)
   }
 
   // Pointer events cover mouse, touch and pen with one code path, so dragging
@@ -81,18 +117,20 @@ export function Carousel({ title, items }: CarouselProps) {
   }
 
   return (
-    <section className="carousel" aria-label={title}>
+    <section className="carousel" aria-label={props.title}>
       <div className="carousel__header">
-        <h1 className="carousel__title">{title}</h1>
+        <h1 className="carousel__title">{props.title}</h1>
 
         <div className="carousel__controls" aria-label="Carousel navigation">
           <RoundButton
+            isDisabled={isAnimating}
             ariaLabel="Show previous video"
             onClick={() => navigate(LEFT)}
           >
             <Icon name="chevronLeftCircle" className="round-button__icon" />
           </RoundButton>
           <RoundButton
+            isDisabled={isAnimating}
             ariaLabel="Show next video"
             onClick={() => navigate(RIGHT)}
           >
@@ -110,10 +148,8 @@ export function Carousel({ title, items }: CarouselProps) {
         onPointerLeave={endCurrentNavigation}
       >
         <ol
-          className="carousel__track"
-          // activeIndex is the single source of truth; the track is shifted left
-          // by one card-step per index via a CSS transform (transition handles
-          // the animation), so no programmatic scrolling is needed.
+          className={`carousel__track${isAnimating ? ' is-animating' : ''}`}
+          onTransitionEnd={handleTransitionEnd}
           style={{
             transform: `translateX(${-activeIndex * CARD_STEP}px)`,
           }}
@@ -123,7 +159,7 @@ export function Carousel({ title, items }: CarouselProps) {
 
             return (
               <li
-                key={item.id}
+                key={item.stableKey}
                 className={`carousel__card${isActive ? ' is-active' : ''}`}
                 aria-current={isActive}
               >
