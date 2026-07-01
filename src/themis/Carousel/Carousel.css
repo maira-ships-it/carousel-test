@@ -58,8 +58,6 @@
 }
 
 .carousel__card {
-  flex: 0 0 300px;
-  width: 300px;
   opacity: 0.34;
 }
 
