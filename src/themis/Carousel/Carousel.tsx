@@ -1,5 +1,5 @@
 import React, {
-  useMemo,
+  useLayoutEffect,
   useRef,
   useState,
   type PointerEvent,
@@ -26,6 +26,8 @@ type CarouselProps = {
 const SWIPE_THRESHOLD = 40
 
 const CARD_GAP = 20
+
+const OVER_SCAN = 2
 
 const LEFT = -1
 const RIGHT = 1
@@ -59,29 +61,34 @@ type CarouselItemWithStableKeyT = {
   stableKey: string
 }
 
+ // Builds a list of size 3N and assigns unique stable key to each item.
+const buildPaddedList = (
+  children: React.ReactNode,
+): CarouselItemWithStableKeyT[] => {
+  const base = React.Children.toArray(children).filter(
+    React.isValidElement,
+  ) as CarouselItemElement[]
+
+  return [0, 1, 2].flatMap((copy) =>
+    base.map((item, index) => ({
+      item,
+      stableKey: `${copy}:${item.key ?? index}`,
+    })),
+  )
+}
+
 export const Carousel = (props: CarouselProps) => {
   const { cardWidth } = props
   const step = cardWidth + CARD_GAP
 
-  const [items, setItems] = useState<CarouselItemElement[]>(
-    () =>
-      React.Children.toArray(props.children).filter(
-        React.isValidElement,
-      ) as CarouselItemElement[],
+  // The full 3N list lives in state and is rotated as a whole, so each slot's
+  // baked key travels with its content across a recenter.
+  const [paddedList, setPaddedList] = useState(() =>
+    buildPaddedList(props.children),
   )
-  const N = items.length
 
-  // Builds a list of size 3N and assigns unique stable key to each item.
-  const renderList = useMemo(
-    (): CarouselItemWithStableKeyT[] =>
-      [0, 1, 2].flatMap((copy) =>
-        items.map((item, index) => ({
-          item,
-          stableKey: `${copy}:${item.key ?? index}`,
-        })),
-      ),
-    [items],
-  )
+  // Gets original items length N
+  const N = paddedList.length / 3 
 
   // Starts at N, and adjusts at transition end to stay at N so there are N cards behind and ahead.
   const [activeIndex, setActiveIndex] = useState(N)
@@ -94,9 +101,43 @@ export const Carousel = (props: CarouselProps) => {
   const xAtPointerDownRef = useRef(0)
   const isCurrentlyNavigatingRef = useRef(false)
 
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const [viewportWidth, setViewportWidth] = useState(0)
+
+  // Responsible to keep the total available width of carousel component in sync on window resize.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+
+    const measure = () => setViewportWidth(viewport.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [])
+
   if (N === 0) {
     return null
   }
+
+  // Only renders the media elements that can be visible on the screen,
+  // plus 2 additional elements on each side (covers the one-step drift
+  // and any partially-visible card) from the paddedList.
+  // The full 3N padded list stays unmounted.
+
+  // However, if the items can fit in the viewport there's nothing to loop
+  // through: skip the padding/rotation and just render the original N items.
+  const allItemsWidth = N * cardWidth + (N - 1) * CARD_GAP
+  const fitsAll = viewportWidth > 0 && allItemsWidth <= viewportWidth
+
+  // Mount only the cards that can be visible (plus overscan) from the 3N list.
+  // In fits-all mode we render the N originals as-is with no offset.
+  const visibleCount = Math.ceil(viewportWidth / step)
+  const windowStart = fitsAll ? 0 : Math.max(0, N - OVER_SCAN)
+  const windowEnd = fitsAll
+    ? N
+    : Math.min(paddedList.length, N + visibleCount + OVER_SCAN)
+  const windowItems = paddedList.slice(windowStart, windowEnd)
 
   // True when a drag is too small to count as an intentional swipe.
   const isUnintentionalTouch = (xDifference: number) =>
@@ -106,6 +147,8 @@ export const Carousel = (props: CarouselProps) => {
   // N here, the transition-end handler rotates the array and auto corrects
   // the active index back to N.
   const navigate = (direction: NavigationDirection) => {
+    if (fitsAll) return
+
     setIsAnimating(true)
     setActiveIndex((current) => current + direction)
   }
@@ -118,7 +161,7 @@ export const Carousel = (props: CarouselProps) => {
     const steps = activeIndex - N
     if (steps === 0) return
 
-    setItems((current) => rotate(current, steps))
+    setPaddedList((current) => rotate(current, steps))
     setActiveIndex(N)
     setIsAnimating(false)
   }
@@ -157,25 +200,28 @@ export const Carousel = (props: CarouselProps) => {
       <div className="carousel__header">
         <h1 className="carousel__title">{props.title}</h1>
 
-        <div className="carousel__controls" aria-label="Carousel navigation">
-          <RoundButton
-            isDisabled={isAnimating}
-            ariaLabel="Show previous video"
-            onClick={() => navigate(LEFT)}
-          >
-            <Icon name="chevronLeftCircle" className="round-button__icon" />
-          </RoundButton>
-          <RoundButton
-            isDisabled={isAnimating}
-            ariaLabel="Show next video"
-            onClick={() => navigate(RIGHT)}
-          >
-            <Icon name="chevronRightCircle" className="round-button__icon" />
-          </RoundButton>
-        </div>
+        {!fitsAll && (
+          <div className="carousel__controls" aria-label="Carousel navigation">
+            <RoundButton
+              isDisabled={isAnimating}
+              ariaLabel="Show previous video"
+              onClick={() => navigate(LEFT)}
+            >
+              <Icon name="chevronLeftCircle" className="round-button__icon" />
+            </RoundButton>
+            <RoundButton
+              isDisabled={isAnimating}
+              ariaLabel="Show next video"
+              onClick={() => navigate(RIGHT)}
+            >
+              <Icon name="chevronRightCircle" className="round-button__icon" />
+            </RoundButton>
+          </div>
+        )}
       </div>
 
       <div
+        ref={viewportRef}
         className="carousel__viewport"
         onPointerDown={startCurrentNavigation}
         onPointerMove={handleNavigation}
@@ -186,10 +232,14 @@ export const Carousel = (props: CarouselProps) => {
         <ol
           className={`carousel__track${isAnimating ? ' is-animating' : ''}`}
           onTransitionEnd={handleTransitionEnd}
-          style={{ gap: CARD_GAP, transform: `translateX(${-activeIndex * step}px)` }}
+          style={{
+            gap: CARD_GAP,
+            transform: fitsAll ? 'none' : `translateX(${-(activeIndex - windowStart) * step}px)`,
+          }}
         >
-          {renderList.map(({item, stableKey}, index) => {
-            const isActive = index === activeIndex
+          {windowItems.map(({ item, stableKey }, i) => {
+            const index = windowStart + i
+            const isActive = (fitsAll) || index === activeIndex
 
             return (
               <li
