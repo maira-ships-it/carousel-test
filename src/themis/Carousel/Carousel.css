@@ -47,7 +47,6 @@
 .carousel__track {
   list-style: none;
   display: flex;
-  gap: 20px;
   margin: 0;
   padding: 0;
   will-change: transform;
@@ -65,27 +64,8 @@
   opacity: 1;
 }
 
-.carousel__panel {
-  display: grid;
-  gap: 14px;
-}
-
-.carousel__media-frame {
-  width: 300px;
-  height: 500px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.58);
-}
-
 .carousel__card:not(.is-active) .video-player {
   pointer-events: none;
-}
-
-.carousel__caption {
-  margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--text-gray-primary);
 }
 
 @media (max-width: 640px) {

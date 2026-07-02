@@ -1,10 +1,14 @@
-import { useRef, useState, type PointerEvent } from 'react'
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+} from 'react'
 import { Icon } from '../Icon'
 import { RoundButton } from '../RoundButton'
-import { VideoPlayer } from '../VideoPlayer'
 import './Carousel.css'
 
-export type CarouselItem = {
+export type CarouselItemT = {
   id: string
   title: string
   desktopSrc: string
@@ -13,43 +17,72 @@ export type CarouselItem = {
 }
 
 type CarouselProps = {
-  title: string
-  items: CarouselItem[]
+  title: string,
+  children: React.ReactNode,
+  cardWidth: number,
 }
 
 // Minimum horizontal travel before a swipe/drag counts as navigation.
 const SWIPE_THRESHOLD = 40
 
-// Card width (px) plus the inter-card gap (px); the distance the track shifts
-// per active index. Keep in sync with .carousel__card width / .carousel__track
-// gap in Carousel.css.
-const CARD_WIDTH = 300
 const CARD_GAP = 20
-const CARD_STEP = CARD_WIDTH + CARD_GAP
 
 const LEFT = -1
 const RIGHT = 1
 type NavigationDirection = -1 | 1
 
 
-const buildWithStableKey = (items: CarouselItem[]): CarouselItem[] =>
-  [...items, ...items, ...items].map((item, index) => ({
-    ...item,
-    stableKey: item.stableKey || String(index)
-  }))
-
 // Rotate the array by steps: positive moves items off the front and onto the
 // back (left rotation), negative does the reverse. Keys move with their items.
-const rotate = (items: CarouselItem[], steps: number): CarouselItem[] => {
+const rotate = <T,>(items: T[], steps: number): T[] => {
   const length = items.length
   const offset = ((steps % length) + length) % length
   return [...items.slice(offset), ...items.slice(0, offset)]
 }
 
-export function Carousel(props: CarouselProps) {
-  const N = props.items.length
+type CarouselItemRenderProp = (state: { isActive: boolean }) => React.ReactNode
 
-  const [items, setItems] = useState<CarouselItem[]>(() => buildWithStableKey(props.items))
+type CarouselItemProps = {
+  render: CarouselItemRenderProp
+  // Injected by <Carousel>: whether this slide is the active (centered) one.
+  isActive?: boolean
+}
+
+export const CarouselItem = ({ render, isActive = false }: CarouselItemProps) => (
+  <>{render({ isActive })}</>
+)
+
+type CarouselItemElement = React.ReactElement<CarouselItemProps>
+
+type CarouselItemWithStableKeyT = {
+  item: CarouselItemElement
+  stableKey: string
+}
+
+export const Carousel = (props: CarouselProps) => {
+  const { cardWidth } = props
+  const step = cardWidth + CARD_GAP
+
+  const [items, setItems] = useState<CarouselItemElement[]>(
+    () =>
+      React.Children.toArray(props.children).filter(
+        React.isValidElement,
+      ) as CarouselItemElement[],
+  )
+  const N = items.length
+
+  // Builds a list of size 3N and assigns unique stable key to each item.
+  const renderList = useMemo(
+    (): CarouselItemWithStableKeyT[] =>
+      [0, 1, 2].flatMap((copy) =>
+        items.map((item, index) => ({
+          item,
+          stableKey: `${copy}:${item.key ?? index}`,
+        })),
+      ),
+    [items],
+  )
+
   // Starts at N, and adjusts at transition end to stay at N so there are N cards behind and ahead.
   const [activeIndex, setActiveIndex] = useState(N)
 
@@ -117,7 +150,10 @@ export function Carousel(props: CarouselProps) {
   }
 
   return (
-    <section className="carousel" aria-label={props.title}>
+    <section
+      className="carousel"
+      aria-label={props.title}
+    >
       <div className="carousel__header">
         <h1 className="carousel__title">{props.title}</h1>
 
@@ -150,31 +186,18 @@ export function Carousel(props: CarouselProps) {
         <ol
           className={`carousel__track${isAnimating ? ' is-animating' : ''}`}
           onTransitionEnd={handleTransitionEnd}
-          style={{
-            transform: `translateX(${-activeIndex * CARD_STEP}px)`,
-          }}
+          style={{ gap: CARD_GAP, transform: `translateX(${-activeIndex * step}px)` }}
         >
-          {items.map((item, index) => {
+          {renderList.map(({item, stableKey}, index) => {
             const isActive = index === activeIndex
 
             return (
               <li
-                key={item.stableKey}
+                key={stableKey}
                 className={`carousel__card${isActive ? ' is-active' : ''}`}
                 aria-current={isActive}
               >
-                <article className="carousel__panel">
-                  <div className="carousel__media-frame">
-                    <VideoPlayer
-                      src={item.desktopSrc}
-                      mobileSrc={item.mobileSrc}
-                      isPlayerActive={isActive}
-                      label={item.title}
-                    />
-                  </div>
-
-                  <p className="carousel__caption">{item.title}</p>
-                </article>
+                {React.cloneElement(item, { isActive })}
               </li>
             )
           })}

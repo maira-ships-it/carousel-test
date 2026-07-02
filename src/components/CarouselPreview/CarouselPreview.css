@@ -4,6 +4,25 @@
   background: var(--bg-gray-primary);
 }
 
+.video-card {
+  display: grid;
+  gap: 14px;
+}
+
+.video-card__media {
+  width: 300px;
+  height: 500px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.video-card__caption {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-gray-primary);
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding: 20px 0 20px 16px;

@@ -1,2 +1,2 @@
-export { Carousel } from './Carousel'
-export type { CarouselItem } from './Carousel'
+export { Carousel, CarouselItem } from './Carousel'
+export type { CarouselItemT } from './Carousel'
