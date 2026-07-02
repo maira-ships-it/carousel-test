@@ -32,15 +32,8 @@
 }
 
 .carousel__viewport {
-  /* Native free-scroll is disabled; navigation is driven by buttons and by
-     pointer swipe/drag gestures that advance exactly one card. The active card
-     is positioned by translating the track (see .carousel__track), so the
-     viewport just clips the overflow. touch-action: pan-y keeps vertical page
-     scrolling while we own horizontal gestures (and avoids triggering browser
-     back-swipe). */
   overflow: hidden;
   touch-action: pan-y;
-  /* Avoid selecting text/images while click-dragging on desktop. */
   user-select: none;
 }
 
