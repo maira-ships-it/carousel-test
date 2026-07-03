@@ -29,9 +29,14 @@ A few ideas make it tick:
 
 For how to actually use it in your own code, see the component's readme: [`src/themis/Carousel/README.md`](src/themis/Carousel/README.md).
 
+## Wish list
+- More accessible navigation by making the components respect device's "Reduce Motion" settings to avoid animations when user has configured their device to see less animations. I could have respected this by having device specific settings and make "transform: none" whenever possible.
+- I could have triggered navigating to right/left as user swipes on trackpad (i.e. two finger swipe on MAC trackpad) or on mouse wheel movement. Currently the navigation only works with either the visual button components, or through pointer events, basically supporting touch screen devices.
+- I would rewrite the logic in the component to not even have 3N logical array and somehow work with only N array items. But I couldnt spend much time here.
+- I could have created more generic css classes or styling components to arange UI elements in a component. Instead of relying on seperate inline css classes on each component that controls the positioning of the elements in a component.
+- I did not setup universal linter through out the project (guilty)
+- In a prod app media files (.mp4) should be hosted on a CDN, but I kept them in the repo.
+  
 ## Choice of vite
 - Lean + Fast
 - https://react.dev/learn/build-a-react-app-from-scratch#vite
-
-## Choice of *.mp4 in the repo to avoid scope creep
-- Ideally media files should be hosted on a CDN in a prod app.
